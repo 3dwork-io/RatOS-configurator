@@ -1,28 +1,20 @@
-# RatOS Configurator
-
-This is the repository for the [RatOS](os.ratrig.com) configurator - a 3d printer provisioning application for RatOS with config generation, board identification, provisioning and automatic flashing. 
-
-## Contributing
-
-All non-hotfix pull requests (meaning additions, enhancements and features) should be submitted against the `development` branch.
-Bug fixes should be submitted against the v2.x branch and subseqently merged into `development`.
-
-## Local setup
-
-### Requirements
-
-This thing still need to be dockerized (PR's welcome), but will run on any linux based machine with the following prerequisites:
-
-* Linux or WSL
+# Configurador RatOS
+Este es el repositorio del configurador [RatOS](os.ratrig.com) - una aplicación de aprovisionamiento de impresoras 3D para RatOS con generación de configuración, identificación de placas, aprovisionamiento y flasheo automático.
+## Contribución
+Todas las solicitudes de extracción (pull requests) que no sean hotfix (es decir, adiciones, mejoras y características) deben enviarse a la rama `development`.
+Las correcciones de errores deben enviarse a la rama v2.x y posteriormente fusionarse en `development`.
+## Configuración Local
+### Requisitos
+Esto aún necesita ser dockerizado (se aceptan PR's), pero funcionará en cualquier máquina basada en Linux con los siguientes prerrequisitos:
+* Linux o WSL
 * VSCode
-* Node v20.x (i prefer managing this with [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating))
+* Node v20.x (prefiero gestionarlo con [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating))
 * [PNPM](https://pnpm.io/installation)
+La mayoría de los scripts bash asumirán que existe el usuario `pi`. Necesita arreglarse, afortunadamente no los necesitas para la mayoría del trabajo.
 
-Most bash scripts will assume user `pi` exists. Needs fixing, fortunately  you don't need them for most work.
+### Instalación
 
-### Installation
-
-Clone repositories
+Clona los repositorios
 ```bash
 mkdir RatOS-dev && cd RatOS-dev
 mkdir -p printer_data/ratos
@@ -38,13 +30,13 @@ git clone git@github.com:Rat-OS/RatOS-configuration.git RatOS
 cd ../..
 ```
 
-Install dependencies
+Instalar dependencias
 ```bash
 cd RatOS-configurator/src
 pnpm install
 ```
 
-Copy environment constants and define paths in .env.local
+Copia las constantes de entorno y define las rutas en .env.local
 ```bash
 cp .env .env.local
 cd ..
@@ -52,7 +44,7 @@ cd ..
 code .
 ```
 
-Edit .env.local and modify the paths to match your setup ie:
+Edita .env.local y modifica las rutas para que coincidan con tu configuración, por ejemplo:
 ```
 RATOS_CONFIGURATION_PATH=/home/myuser/RatOS-dev/printer_data/config/RatOS
 KLIPPER_CONFIG_PATH=/home/myuser/RatOS-dev/printer_data/config
@@ -66,28 +58,28 @@ NEXT_PUBLIC_KLIPPER_HOSTNAME=hostnameofrunningtestprinter.local
 RECOIL_DUPLICATE_ATOM_KEY_CHECKING_ENABLED=false
 ```
 
-The `NEXT_PUBLIC_KLIPPER_HOSTNAME` variable is used by the frontend to connect to moonraker and klipper, those need to be real. The RatOS configurator will save configuration to the database on the moonraker instance running on that host.
+La variable `NEXT_PUBLIC_KLIPPER_HOSTNAME` es utilizada por el frontend para conectarse a moonraker y klipper, estos necesitan ser reales. El configurador RatOS guardará la configuración en la base de datos en la instancia de moonraker que se ejecuta en ese host.
 
-You can try and run klipper and moonraker locally (i have not gone down this path yet).
+Puedes intentar ejecutar klipper y moonraker localmente (aún no he explorado esta opción).
 
-### (Optional) link the RatOS cli binary (commands only work when dev server is running)
+### (Opcional) vincular el binario cli de RatOS (los comandos solo funcionan cuando el servidor de desarrollo está en ejecución)
 ```bash
 sudo ln -s "/home/myuser/RatOS-dev/RatOS-configurator/src/bin/ratos" "/usr/local/bin/ratos"
 sudo chmod a+x "/usr/local/bin/ratos"
 ```
-You should no be able to run the `ratos` cli command.
+Ahora deberías poder ejecutar el comando `ratos` desde la línea de comandos.
 
-### Developing
+### Desarrollo
 
-in `RatOS-dev/RatOS-configurator/src` you can run
+en `RatOS-dev/RatOS-configurator/src` puedes ejecutar
 
-* `pnpm run dev` to run the development server
-* `pnpm run test` to run the tests
-* `pnpm run typecheck` to run typechecking
-* `pnpm run lint` to run linting
+* `pnpm run dev` para ejecutar el servidor de desarrollo
+* `pnpm run test` para ejecutar las pruebas
+* `pnpm run typecheck` para ejecutar la comprobación de tipos
+* `pnpm run lint` para ejecutar el linting
 
-## Help and support
+## Ayuda y soporte
 
-Please use the unofficial Rat Rig discord for help and support. Only create an issue if you have found a bug and can describe how to reproduce it, feature requests and discussions should happen in the #ratos-development channel on discord.
+Por favor, utiliza el Discord no oficial de Rat Rig para ayuda y soporte. Solo crea un issue si has encontrado un error y puedes describir cómo reproducirlo, las solicitudes de funciones y las discusiones deben realizarse en el canal #ratos-development de Discord.
 
 <a href="http://discord.gg/ratrig" target="_blank" rel="noopener noreferrer" style="margin-left: 5px;"><img src="https://img.shields.io/discord/582187371529764864?color=%235865F2&amp;label=discord&amp;logo=discord&amp;logoColor=white&amp;style=flat" alt="discord"></a>
