@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useRecoilValue } from 'recoil';
 import { ToolheadHelper } from '@/helpers/toolhead';
-import { StepScreen, useSteps } from '@/hooks/useSteps';
+import { StepScreen, StepScreenProps } from '@/hooks/useSteps'; // We still use the types
 import { LoadablePrinterToolheadsState } from '@/recoil/toolhead';
 import { ToolheadConfiguration } from '@/zods/toolhead';
 import { Spinner } from '@/components/common/spinner';
@@ -14,27 +14,34 @@ import { WizardComplete } from '@/components/setup-steps/wizard-complete';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLocalPathname } from '@/app/_hooks/navigation';
 import { Card } from '@/components/common/card';
+import { useMachine } from '@xstate/react';
+import { createWizardMachine, WizardContext } from '@/machines/wizard-machine';
 
 interface WizardProps {
 	isConnectedToWifi?: boolean;
 	hasWifiInterface?: boolean;
 }
 
-const makeSteps = (toolheads: ToolheadConfiguration<any>[], isConfigValid: boolean): StepScreen[] => {
+const makeSteps = (toolheads: ToolheadConfiguration<any>[], isConfigValid: boolean, hasWifiInterface?: boolean): StepScreen[] => {
 	let nextIndex = 0;
 	const getNextIndex = () => {
+		const idx = nextIndex;
 		nextIndex++;
-		return (nextIndex + '').padStart(2, '0');
+		return (idx + '').padStart(2, '0');
 	};
-	const result: StepScreen[] = [
-		{
+	const result: StepScreen[] = [];
+	
+	if (hasWifiInterface) {
+		result.push({
 			id: getNextIndex(),
 			name: 'Network connectivity',
 			description: 'Setup Wifi or Ethernet connectivity',
 			href: '#',
 			renderScreen: (screenProps) => <WifiSetup {...screenProps} key={screenProps.key} />,
-		},
-		{
+		});
+	}
+	
+	result.push({
 			id: getNextIndex(),
 			name: 'Printer Selection',
 			description: 'Select the printer you want to configure',
@@ -49,7 +56,8 @@ const makeSteps = (toolheads: ToolheadConfiguration<any>[], isConfigValid: boole
 			href: '#',
 			renderScreen: (screenProps) => <MCUPreparation {...screenProps} key={screenProps.key} />,
 		},
-	];
+	);
+	
 	toolheads.forEach((toolhead) => {
 		const th = new ToolheadHelper(toolhead);
 		result.push({
@@ -79,20 +87,7 @@ const makeSteps = (toolheads: ToolheadConfiguration<any>[], isConfigValid: boole
 		href: '#',
 		renderScreen: (screenProps) => <WizardComplete {...screenProps} key={screenProps.key} />,
 	});
-	// {
-	// 	id: '06',
-	// 	name: 'Kinematics',
-	// 	description: 'Check directionality of your steppers',
-	// 	href: '#',
-	// 	renderScreen: (screenProps) => <CoreXYKinematics {...screenProps} />,
-	// },
-	// {
-	// 	id: '07',
-	// 	name: 'Heaters',
-	// 	description: 'Calibrate your heaters',
-	// 	href: '#',
-	// 	renderScreen: () => null,
-	// },
+
 	return result;
 };
 
@@ -119,21 +114,60 @@ export const SetupSteps: React.FC<WizardProps> = (props) => {
 	const router = useRouter();
 	const pathname = useLocalPathname();
 	const ths = useRecoilValue(LoadablePrinterToolheadsState);
-	const steps = useMemo(() => makeSteps(ths, ths?.length > 0), [ths]);
-	const uriStep = searchParams?.get('step') ? parseInt(searchParams?.get('step') ?? '', 10) : null;
-	const defaultStep = props.hasWifiInterface && !props.isConnectedToWifi ? 0 : 1;
+	
+	// Create machine
+	const [state, send] = useMachine(
+		useMemo(() => createWizardMachine({
+			toolheads: ths,
+			currentToolheadIndex: 0,
+			isConfigValid: ths?.length > 0, // simplified validation check
+			hasWifiInterface: !!props.hasWifiInterface,
+			isConnectedToWifi: !!props.isConnectedToWifi,
+		}), [ths, props.hasWifiInterface, props.isConnectedToWifi])
+	);
 
-	const { currentStepIndex, setCurrentStepIndex, screenProps, currentStep } = useSteps({
-		step: uriStep != null && uriStep < steps.length ? uriStep : defaultStep,
-		onStepChange: (step) => {
-			'use client';
-			router.push(`${pathname}?step=${step}`, undefined);
-			window.scrollTo(0, 0);
-		},
-		steps,
-	});
+	const steps = useMemo(() => makeSteps(ths, ths?.length > 0, props.hasWifiInterface), [ths, props.hasWifiInterface]);
+	
+	// Calculate current index based on state
+	const currentStepIndex = useMemo(() => {
+		let index = 0;
+		if (state.matches('wifiSetup')) index = 0;
+		else if (state.matches('printerSelection')) index = props.hasWifiInterface ? 1 : 0;
+		else if (state.matches('mcuPreparation')) index = props.hasWifiInterface ? 2 : 1;
+		else if (state.matches('toolboardPreparation')) {
+			const base = props.hasWifiInterface ? 3 : 2;
+			index = base + state.context.currentToolheadIndex;
+		}
+		else if (state.matches('hardwareSelection')) {
+			const base = props.hasWifiInterface ? 3 : 2;
+			index = base + ths.length;
+		}
+		else if (state.matches('confirm')) {
+			const base = props.hasWifiInterface ? 4 : 3;
+			index = base + ths.length;
+		}
+		return index;
+	}, [state, props.hasWifiInterface, ths.length]);
 
-	const isReady = uriStep == null || uriStep === currentStepIndex;
+	// Sync URL with step
+	useEffect(() => {
+		router.push(`${pathname}?step=${currentStepIndex}`, undefined);
+	}, [currentStepIndex, pathname, router]);
+
+	const currentStep = steps[currentStepIndex];
+
+	const screenProps: StepScreenProps = {
+		nextScreen: () => send({ type: 'NEXT' }),
+		previousScreen: () => send({ type: 'PREV' }),
+		hasNextScreen: true,
+		hasPreviousScreen: currentStepIndex > 0,
+		skipSteps: () => send({ type: 'NEXT' }), // Treat skip as next for now
+		name: currentStep?.name as string,
+		description: currentStep?.description as string,
+		key: `step-${currentStepIndex}`,
+	};
+
+	const isReady = currentStep != null;
 
 	return (
 		<div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-4 px-4 lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3">
@@ -153,7 +187,7 @@ export const SetupSteps: React.FC<WizardProps> = (props) => {
 						steps={steps}
 						screenProps={screenProps}
 						currentStepIndex={currentStepIndex}
-						setCurrentStepIndex={setCurrentStepIndex}
+						setCurrentStepIndex={() => {}} // Disable manual navigation for now to enforce flow
 					/>
 				</Card>
 			</div>

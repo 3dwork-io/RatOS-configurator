@@ -422,6 +422,19 @@ export const generateKlipperConfiguration = async <T extends boolean>(
 	skipFiles?: string[],
 ): Promise<T extends true ? string : { fileName: string; action: FileAction; err?: unknown }[]> => {
 	const environment = serverSchema.parse(process.env);
+
+    // Git Integration: Pre-update commit
+    try {
+        const isRepo = await GitService.isRepo(environment.KLIPPER_CONFIG_PATH);
+        if (!isRepo) {
+            await GitService.init(environment.KLIPPER_CONFIG_PATH);
+        }
+        await GitService.add(environment.KLIPPER_CONFIG_PATH, '.');
+        await GitService.commit(environment.KLIPPER_CONFIG_PATH, 'Pre-RatOS-Configurator Update');
+    } catch (e) {
+        getLogger().warn('Git pre-update operation failed', e);
+    }
+
 	const filesToWrite = await getFilesToWrite(config, overwriteFiles);
 	const results: { fileName: string; action: FileAction; err?: unknown }[] = await Promise.all(
 		filesToWrite.map(async (file) => {
@@ -508,6 +521,15 @@ export const generateKlipperConfiguration = async <T extends boolean>(
 			"Couldn't backup your current printer settings to disk, but your klipper configuration has been generated.",
 		);
 	}
+
+    // Git Integration: Post-update commit
+    try {
+        await GitService.add(environment.KLIPPER_CONFIG_PATH, '.');
+        await GitService.commit(environment.KLIPPER_CONFIG_PATH, 'RatOS-Configurator Update');
+    } catch (e) {
+        getLogger().warn('Git post-update operation failed', e);
+    }
+
 	return results as T extends true ? string : { fileName: string; action: FileAction; err?: unknown }[];
 };
 

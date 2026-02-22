@@ -1,15 +1,15 @@
 # Informe Técnico de Ingeniería: Proyecto RatOS Configurator
 
-**Fecha:** 22 de Febrero de 2026  
-**Proyecto:** RatOS Configurator  
-**Ubicación:** `d:\Mi Mundo\Imprision3D\KLIPPER\RatOS-configurator`  
+**Fecha:** 22 de Febrero de 2026
+**Proyecto:** RatOS Configurator
+**Ubicación:** `d:\Mi Mundo\Imprision3D\KLIPPER\RatOS-configurator`
 **Autor:** Asistente Técnico Senior (Trae IDE)
 
 ---
 
 ## 1. Introducción y Objetivos
 
-El presente informe técnico tiene como objetivo documentar de manera exhaustiva el estado actual del proyecto `RatOS-configurator`, analizar su arquitectura hardware y software, y establecer una hoja de ruta para la creación de nuevo hardware de impresión 3D. Este documento servirá como base autorizada para equipos de ingeniería, fabricación y soporte técnico.
+El presente informe técnico tiene como objetivo documentar de manera exhaustiva el estado actual del proyecto `RatOS-configurator`, analizar su arquitectura hardware y software (incluyendo las recientes mejoras de backend), y establecer una hoja de ruta para la creación de nuevo hardware de impresión 3D y la evolución del sistema de importación. Este documento servirá como base autorizada para equipos de ingeniería, fabricación y soporte técnico.
 
 ## 2. Análisis de Arquitectura del Hardware Existente y Propuesta
 
@@ -31,6 +31,15 @@ Para la expansión del ecosistema, se recomienda la integración de:
 - **Nuevas Placas Controladoras**: Soporte para placas basadas en RP2040 y STM32H7 para mayor capacidad de procesamiento.
 - **Toolheads Integrados**: Definiciones "todo en uno" que agrupen hotend, extrusor, ventiladores y placa de herramienta (toolboard) para simplificar la selección del usuario.
 - **Sistemas de Cambio de Herramienta (Toolchangers)**: Ampliación de la lógica de `toolhead` para soportar múltiples cabezales físicos con cinemática de acople.
+
+### 2.3 Evolución del Backend de Software (Febrero 2026)
+Como parte del esfuerzo de modernización y seguridad, se han implementado cambios estructurales significativos en el código fuente:
+
+-   **Seguridad Reforzada**: Se ha eliminado el uso de `exec` inseguro en los controladores principales (`printer.ts`, `mcu.ts`), reemplazándolo con `execFile` y sanitización estricta de argumentos para prevenir inyección de comandos.
+-   **Arquitectura Orientada a Servicios**: Se ha refactorizado la lógica monolítica en servicios dedicados bajo el Principio de Responsabilidad Única (SRP):
+    -   `GitService`: Centraliza todas las operaciones de control de versiones y comparaciones de configuración.
+    -   `ConfigurationService`: Maneja la lógica de negocio para la gestión de archivos `.cfg`.
+-   **Seguridad de Tipos (Type Safety)**: Se ha iniciado una migración estricta a TypeScript, eliminando el uso de `any` en componentes críticos para garantizar la estabilidad en tiempo de ejecución.
 
 ## 3. Especificaciones Técnicas Completas
 
@@ -82,12 +91,14 @@ Los archivos `.template.cfg` sirven como base para generar el `printer.cfg` fina
 
 ## 6. Roadmap Técnico
 
-### Fase 1: Consolidación y Limpieza (Q2 2026)
+### Fase 1: Consolidación, Seguridad y Limpieza (Q1-Q2 2026)
+- **Milestone 1.0 (Completado)**: Hardening de seguridad (eliminación de `exec` inseguro) y refactorización a servicios (Git, Configuration, MCU).
 - **Milestone 1.1**: Estandarización de todas las definiciones de placas bajo el esquema v2.0.
 - **Milestone 1.2**: Refactorización de macros para eliminar dependencias heredadas.
-- **Criterio de Aceptación**: 100% de los tests de integración (`src/__tests__`) pasando.
+- **Milestone 1.3**: Implementación del nuevo **Sistema de Importación Recursiva** (ver `diseno_sistema_importacion.md`) para soportar configuraciones modulares complejas.
+- **Criterio de Aceptación**: 100% de los tests de integración (`src/__tests__`) pasando y 0 vulnerabilidades de inyección de comandos.
 
-### Fase 2: Expansión de Hardware (Q3 2026)
+### Fase 2: Expansión de Hardware y Wizards (Q3 2026)
 - **Milestone 2.1**: Soporte nativo para cinemáticas IDEX y Toolchanger en el configurador UI.
 - **Milestone 2.2**: Integración de cámaras y visión por computador (Obico/Crowsnest).
 
