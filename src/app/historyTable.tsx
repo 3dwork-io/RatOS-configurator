@@ -16,7 +16,7 @@ import { DateTime, Duration, DurationLikeObject } from 'luxon';
 import { twMerge } from 'tailwind-merge';
 import { useMoonraker } from '@/moonraker/hooks';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { getHost } from '@/helpers/util';
+import { getHost } from '@/helpers/utils';
 import { ChevronUpDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
 import { Spinner } from '@/components/common/spinner';

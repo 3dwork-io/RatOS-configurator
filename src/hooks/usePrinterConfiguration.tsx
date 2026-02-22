@@ -72,26 +72,13 @@ export const ControllerFanState = atom<z.infer<typeof Fan> | null>({
 	],
 });
 
-export const PrinterConfigurationState = selector<z.infer<typeof PartialPrinterConfiguration> | null>({
-	key: 'PrinterConfiguration',
-	get: async ({ get }) => {
-		const {
-			printer,
-			printerSize,
-			performanceMode,
-			stealthchop,
-			standstillStealth,
-			rails,
-			controlboard,
-			controllerFan,
-			toolheads,
-		} = get(
+export const PrinterHardwareState = selector({
+	key: 'PrinterHardware',
+	get: ({ get }) => {
+		const { printer, printerSize, rails, controlboard, controllerFan, toolheads } = get(
 			waitForAll({
 				printer: PrinterState,
 				printerSize: PrinterSizeState,
-				performanceMode: PerformanceModeState,
-				stealthchop: StealthchopState,
-				standstillStealth: StandstillStealthState,
 				rails: PrinterRailsState,
 				controlboard: ControlboardState,
 				controllerFan: ControllerFanState,
@@ -99,7 +86,7 @@ export const PrinterConfigurationState = selector<z.infer<typeof PartialPrinterC
 			}),
 		);
 
-		const input = {
+		return {
 			printer:
 				printer == null
 					? null
@@ -111,13 +98,31 @@ export const PrinterConfigurationState = selector<z.infer<typeof PartialPrinterC
 							},
 						},
 			size: printerSize,
-			performanceMode,
-			stealthchop,
-			standstillStealth,
 			rails,
 			controlboard,
 			controllerFan,
 			toolheads: toolheads.length > 0 ? toolheads : undefined,
+		};
+	},
+});
+
+export const PrinterConfigurationState = selector<z.infer<typeof PartialPrinterConfiguration> | null>({
+	key: 'PrinterConfiguration',
+	get: async ({ get }) => {
+		const hardware = get(PrinterHardwareState);
+		const { performanceMode, stealthchop, standstillStealth } = get(
+			waitForAll({
+				performanceMode: PerformanceModeState,
+				stealthchop: StealthchopState,
+				standstillStealth: StandstillStealthState,
+			}),
+		);
+
+		const input = {
+			...hardware,
+			performanceMode,
+			stealthchop,
+			standstillStealth,
 		} satisfies {
 			[key in keyof PrinterConfiguration]: NonNullable<PartialPrinterConfiguration>[key] | null | undefined;
 		};

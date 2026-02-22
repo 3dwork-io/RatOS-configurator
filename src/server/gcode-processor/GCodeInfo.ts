@@ -15,12 +15,10 @@
  */
 
 import { SemVer } from 'semver';
-import fsReader from '@/server/helpers/fs-reader.js';
+import { getLines as fsReaderGetLines } from '@/server/helpers/fs-reader';
 import util from 'node:util';
 import { AnalysisResult } from '@/server/gcode-processor/AnalysisResult';
 import { GCodeFlavour } from '@/server/gcode-processor/GCodeFlavour';
-
-const fsReaderGetLines = util.promisify(fsReader) as (path: string, lines: number) => Promise<string>;
 
 /** Serialized characteristics of a G-code file, typically determined from the header lines of the file. */
 export interface SerializedGcodeInfo {

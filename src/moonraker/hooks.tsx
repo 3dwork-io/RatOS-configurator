@@ -27,7 +27,7 @@ import type {
 	PrinterObjectResult,
 	JSONRPCResponseSuccess,
 } from '@/moonraker/types';
-import { getHost } from '@/helpers/util';
+import { getHost } from '@/helpers/utils';
 import { merge } from 'ts-deepmerge';
 import deepEqual from 'deep-equal';
 import { getLogger } from '@/app/_helpers/logger';

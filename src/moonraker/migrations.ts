@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { getHost } from '@/helpers/util';
+import { getHost } from '@/helpers/utils';
 import { MoonrakerDBItemResponse } from '@/moonraker/types';
 
 interface Migration {

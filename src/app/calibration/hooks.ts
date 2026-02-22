@@ -9,7 +9,7 @@ import {
 	usePrinterObjectSubscription,
 } from '@/moonraker/hooks';
 import { merge } from 'ts-deepmerge';
-import { getHost } from '@/helpers/util';
+import { getHost } from '@/helpers/utils';
 import { useCallbackRef } from 'use-callback-ref';
 import { MoonrakerDB } from '@/moonraker/types';
 import { useWindowSize } from '@/app/_hooks/resize';

@@ -11,7 +11,7 @@ import { Modal } from '@/components/common/modal';
 import { Spinner } from '@/components/common/spinner';
 import { trpc } from '@/utils/trpc';
 import { FileClock, FileCode, FileJson } from 'lucide-react';
-import { formatBytes } from '@/helpers/util';
+import { formatBytes } from '@/helpers/utils';
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
 	useEffect(() => {

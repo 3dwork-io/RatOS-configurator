@@ -10,7 +10,7 @@ import { FileClock, FileCode, FileJson } from 'lucide-react';
 import { Suspense } from 'react';
 import { Spinner } from '@/components/common/spinner';
 import { DialogTitle } from '@/components/ui/dialog';
-import { formatBytes } from '@/helpers/util';
+import { formatBytes } from '@/helpers/utils';
 
 const mainsail = '/';
 const externalNav = [

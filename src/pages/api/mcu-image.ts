@@ -5,7 +5,7 @@ import path from 'path';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { fileTypeFromBuffer } from 'file-type';
 import { getPrinters } from '@/server/routers/printer';
-import { getBoards } from '@/server/routers/mcu';
+import { getBoards } from '@/server/services/mcu';
 
 type PrinterImageSuccessResponseData = Buffer;
 

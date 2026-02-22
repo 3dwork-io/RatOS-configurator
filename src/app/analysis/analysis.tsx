@@ -44,7 +44,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { useToolheads } from '@/hooks/useToolheadConfiguration';
 import { KlipperAccelSensorName } from '@/zods/hardware';
-import { getHost } from '@/helpers/util';
+import { getHost } from '@/helpers/utils';
 
 SciChartSurface.configure({
 	wasmUrl: '/configure/scichart2d.wasm',

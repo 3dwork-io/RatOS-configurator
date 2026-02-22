@@ -84,7 +84,7 @@ export const serializePrinterRail = (rail: z.input<typeof PrinterRail>): z.infer
 	});
 };
 
-export const serializeToolheadConfiguration = (th: ToolheadConfiguration<any>): SerializedToolheadConfiguration => {
+export const serializeToolheadConfiguration = (th: ToolheadConfiguration<boolean>): SerializedToolheadConfiguration => {
 	return {
 		...th,
 		toolboard: th.toolboard?.id,

@@ -37,7 +37,7 @@ import {
 } from '@/app/analysis/_worker';
 import { fromWorker } from 'observable-webworker';
 import { Subject, animationFrames, buffer, bufferTime, filter, firstValueFrom, map, share, timeout } from 'rxjs';
-import { getHost } from '@/helpers/util';
+import { getHost } from '@/helpers/utils';
 import { PSDResult } from '@/app/analysis/_worker/psd';
 import { TypedArrayPSD } from '@/app/analysis/periodogram';
 import { PSD } from '@/zods/analysis';

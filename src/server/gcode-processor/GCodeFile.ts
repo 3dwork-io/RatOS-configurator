@@ -17,7 +17,7 @@
 import semver, { SemVer } from 'semver';
 import { GCodeError, InternalError, GeneratorIdentificationNotFound } from '@/server/gcode-processor/errors';
 import date2 from 'date-and-time';
-import fsReader from '@/server/helpers/fs-reader.js';
+import { getLines as fsReaderGetLines } from '@/server/helpers/fs-reader';
 import util from 'node:util';
 import fastChunkString from '@shelf/fast-chunk-string';
 import { GCodeInfo, MutableGCodeInfo } from '@/server/gcode-processor/GCodeInfo';
@@ -41,9 +41,11 @@ import { Printability } from '@/server/gcode-processor/Printability';
 import { NullSink } from '@/server/gcode-processor/NullSink';
 import { PartialToNullableRequired, strictWithDefaults } from '@/utils/object-manipulation';
 
-function assert(condition: any, message?: string): asserts condition {
+function assert(condition: unknown, message?: string): asserts condition {
 	if (!condition) {
-		throw new AssertionError({ message });
+		throw new AssertionError(message);
+	}
+});
 	}
 }
 
@@ -101,8 +103,6 @@ const defaultInspectOptions: PartialToNullableRequired<InspectOptions> = {
 	onWarning: null,
 	printerHasIdex: null,
 };
-
-const fsReaderGetLines = util.promisify(fsReader) as (path: string, lines: number) => Promise<string>;
 
 /** Match a block like:
  *

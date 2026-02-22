@@ -13,9 +13,8 @@ import { wifiFixture } from '@/data/wifi-fixture';
 
 export const wifiRouter = router({
 	hostname: publicProcedure.input(hostnameInput).mutation(async ({ input }) => {
-		const scriptRoot = getScriptRoot();
 		try {
-			const result = await promisify(exec)(`sudo ${path.join(scriptRoot, 'change-hostname.sh')} ${input.hostname}`);
+			await runSudoScript('change-hostname.sh', input.hostname);
 		} catch (e) {
 			if (e instanceof Error) {
 				getLogger().error(e.message);

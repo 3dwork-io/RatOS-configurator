@@ -26,7 +26,7 @@ import {
 	FileCode,
 	FileJson,
 } from 'lucide-react';
-import { formatBytes } from '@/helpers/util';
+import { formatBytes } from '@/helpers/utils';
 import { Modal } from '@/components/common/modal';
 import { AnimatedContainer } from '@/components/common/animated-container';
 
