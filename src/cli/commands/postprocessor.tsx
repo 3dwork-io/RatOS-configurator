@@ -5,6 +5,7 @@ import {
 	processGCode,
 	PROGRESS_STREAM_SPEED_STABILIZATION_TIME,
 } from '@/server/gcode-processor/gcode-processor';
+import { inspectGCodeAsync, processGCodeAsync } from '@/server/gcode-processor/worker-client';
 import { echo, fs, tmpfile } from 'zx';
 import { ProgressBar, StatusMessage } from '@inkjs/ui';
 import { Box, render, Text } from 'ink';

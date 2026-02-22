@@ -63,11 +63,11 @@ interface CommonOptions {
 	fullAnalysis?: boolean;
 }
 
-interface ProcessOptions extends CommonOptions {
+export interface ProcessOptions extends CommonOptions {
 	overwrite?: boolean;
 }
 
-interface InspectOptions extends CommonOptions {}
+export interface InspectOptions extends CommonOptions {}
 
 export async function inspectGCode(inputFile: string, options: InspectOptions): Promise<ProcessorResult> {
 	const inputStat = await stat(path.resolve(inputFile));

@@ -4,9 +4,10 @@ import {
 	deserializeToolheadConfiguration,
 	getPrinters,
 	parseDirectory,
-} from '@/server/routers/printer';
+} from '@/server/services/configuration';
 import { Extruder, Hotend, Probe } from '@/zods/hardware';
-import { getBoards } from '@/server/routers/mcu';
+import { PrinterDefinition } from '@/zods/printer';
+import { getBoards } from '@/server/services/mcu';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
@@ -59,7 +60,7 @@ describe('configuration', async () => {
 	});
 	test.concurrent('is free of dumb typos', async () => {
 		const files = await glob(environment.RATOS_CONFIGURATION_PATH + '/**/*.cfg');
-		const fileContents = files.map((f) => readFile(f));
+		const fileContents = files.map((f: string) => readFile(f));
 		let noAmpersands = '';
 		let noElseIfs = '';
 		let f = 0;
@@ -87,20 +88,20 @@ describe('configuration', async () => {
 		describe.each(parsedBoards)('$name', async (board) => {
 			test.concurrent('has executable scripts', async () => {
 				const boardFiles = await promisify(fs.readdir)(`${board.path}`);
-				const boardScripts = boardFiles.filter((f) => f.substring(f.length - 3) === '.sh');
+				const boardScripts = boardFiles.filter((f: string) => f.substring(f.length - 3) === '.sh');
 				expect(boardScripts.length).toBeGreaterThan(0);
 				await Promise.all(
-					boardScripts.map(async (file) => {
+					boardScripts.map(async (file: string) => {
 						return await promisify(fs.access)(`${board.path}/${file}`, fs.constants.X_OK);
 					}),
 				);
 			});
 			test.skipIf(board.isHost).concurrent('has a valid single unique udev rule', async () => {
-				const rules: string[] = (await glob(`${board.path}/../**/*.rules`)).map((r) => r.split('/').pop() ?? '');
+				const rules: string[] = (await glob(`${board.path}/../**/*.rules`)).map((r: string) => r.split('/').pop() ?? '');
 				const boardFiles = await promisify(fs.readdir)(`${board.path}`);
-				const boardRules = boardFiles.filter((f) => f.substring(f.length - 6) === '.rules');
+				const boardRules = boardFiles.filter((f: string) => f.substring(f.length - 6) === '.rules');
 				expect(boardRules.length).toBe(1);
-				expect(rules.filter((r) => r === boardRules[0]).length).toBe(1);
+				expect(rules.filter((r: string) => r === boardRules[0]).length).toBe(1);
 				rules.push(boardRules[0]);
 				expect(fs.existsSync(`${board.path}/${boardRules[0]}`)).toBeTruthy();
 				const ruleContents = await promisify(fs.readFile)(`${board.path}/${boardRules[0]}`, 'utf8');
@@ -122,32 +123,32 @@ describe('configuration', async () => {
 				}
 				const slotNames = Object.keys(board.motorSlots);
 				const requiredUniquePins: string[] = [];
-				slotNames.forEach((slot) => {
+				slotNames.forEach((slot: string) => {
 					const pinAliases = Object.keys(board.motorSlots[slot] as { [key: string]: string }).filter(
 						(key: string): key is keyof z.infer<typeof MotorSlotPins> => key !== 'title',
 					);
-					const filteredSlot = Object.fromEntries(pinAliases.map((alias) => [alias, board.motorSlots[slot][alias]]));
-					const pins = pinAliases.map((alias) => (board.motorSlots[slot] as { [key: string]: string })[alias]);
-					pins.forEach((pin) => {
+					const filteredSlot = Object.fromEntries(pinAliases.map((alias: string) => [alias, (board.motorSlots[slot] as any)[alias]]));
+					const pins = pinAliases.map((alias: string) => (board.motorSlots[slot] as { [key: string]: string })[alias]);
+					pins.forEach((pin: string) => {
 						if (pin == 'null') {
 							return;
 						}
 						expect(pin).toMatch(/^[a-zA-Z0-9\.]+$/);
-						const usedForAliases = pinAliases.filter((alias) => filteredSlot[alias] === pin);
+						const usedForAliases = pinAliases.filter((alias: string) => filteredSlot[alias] === pin);
 						// check that the pin is only used for a specific purpose.
 						const stepEnableDir = usedForAliases.filter(
-							(alias) => ['enable_pin', 'step_pin', 'dir_pin'].indexOf(alias) > -1,
+							(alias: string) => ['enable_pin', 'step_pin', 'dir_pin'].indexOf(alias) > -1,
 						).length;
 						const uartCs = Math.min(
-							usedForAliases.filter((alias) => ['uart_pin', 'cs_pin'].indexOf(alias) > -1).length,
+							usedForAliases.filter((alias: string) => ['uart_pin', 'cs_pin'].indexOf(alias) > -1).length,
 							1,
 						);
 						const endstopDiag = Math.min(
-							usedForAliases.filter((alias) => ['endstop_pin', 'diag_pin'].indexOf(alias) > -1).length,
+							usedForAliases.filter((alias: string) => ['endstop_pin', 'diag_pin'].indexOf(alias) > -1).length,
 							1,
 						);
 						const others = usedForAliases.filter(
-							(alias) =>
+							(alias: string) =>
 								['enable_pin', 'step_pin', 'dir_pin', 'uart_pin', 'cs_pin', 'endstop_pin', 'diag_pin'].indexOf(
 									alias,
 								) === -1,
@@ -158,25 +159,25 @@ describe('configuration', async () => {
 						).toBe(1);
 						// Check if non-unique pins are used for other purposes in other slots
 						const shouldBeUniqueAcrossSlots = usedForAliases.filter(
-							(alias) =>
+							(alias: string) =>
 								['step_pin', 'dir_pin', 'cs_pin', 'uart_address', 'diag_pin', 'endstop_pin'].indexOf(alias) > -1,
 						).length;
 						if (!shouldBeUniqueAcrossSlots) {
-							usedForAliases.forEach((orgAlias) => {
+							usedForAliases.forEach((orgAlias: string) => {
 								slotNames
-									.filter((s) => s !== slot)
-									.forEach((otherSlot) => {
+									.filter((s: string) => s !== slot)
+									.forEach((otherSlot: string) => {
 										if (!shouldBeUniqueAcrossSlots) {
 											const otherPins = Object.keys(board.motorSlots[otherSlot] as { [key: string]: string })
-												.filter((alias) => alias !== orgAlias)
-												.map((alias) => (board.motorSlots[otherSlot] as { [key: string]: string })[alias]);
+												.filter((alias: string) => alias !== orgAlias)
+												.map((alias: string) => (board.motorSlots[otherSlot] as { [key: string]: string })[alias]);
 											expect(
 												otherPins.includes(pin),
 												`${orgAlias} ${pin} on slot ${slot} is used for a different purpose in slot ${otherSlot}`,
 											).toBeFalsy();
 										} else {
 											const otherPins = Object.keys(board.motorSlots[otherSlot] as { [key: string]: string }).map(
-												(alias) => (board.motorSlots[otherSlot] as { [key: string]: string })[alias],
+												(alias: string) => (board.motorSlots[otherSlot] as { [key: string]: string })[alias],
 											);
 											expect(
 												otherPins.includes(pin),
@@ -284,7 +285,7 @@ describe('configuration', async () => {
 			});
 		});
 	});
-	const printerConfigs = parsedPrinters.filter((p) => p.defaults == null);
+	const printerConfigs = parsedPrinters.filter((p: PrinterDefinition) => p.defaults == null);
 	test('has valid printer configuration files', async () => {
 		expect(printerConfigs.length).toBe(0);
 	});
@@ -357,18 +358,18 @@ describe('configuration', async () => {
 				partialConfig,
 			);
 			const deserializedConfig = await deserializePartialPrinterConfiguration(partialConfig);
-			const defaultHotend = parsedHotends.find((hotend) => hotend.id === toolhead.hotend);
-			const defaultExtruder = parsedExtruders.find((extruder) => extruder.id === toolhead.extruder);
-			const defaultProbe = parsedProbes.find((probe) => probe.id === toolhead.probe);
+			const defaultHotend = parsedHotends.find((hotend: any) => hotend.id === toolhead.hotend);
+			const defaultExtruder = parsedExtruders.find((extruder: any) => extruder.id === toolhead.extruder);
+			const defaultProbe = parsedProbes.find((probe: any) => probe.id === toolhead.probe);
 			const defaultXEndstop = xEndstopOptions(deserializedConfig, {
 				...deserializedToolheadConfig,
 				axis: deserializedToolheadConfig?.axis ?? PrinterAxis.x,
-			}).find((option) => option.id === toolhead.xEndstop);
+			}).find((option: any) => option.id === toolhead.xEndstop);
 			const defaultYEndstop = yEndstopOptions(deserializedConfig, {
 				...deserializedToolheadConfig,
 				axis: deserializedToolheadConfig?.axis ?? PrinterAxis.x,
-			}).find((option) => option.id === toolhead.yEndstop);
-			const defaultToolboard = parsedBoards.find((board) => board.id === toolhead.toolboard);
+			}).find((option: any) => option.id === toolhead.yEndstop);
+			const defaultToolboard = parsedBoards.find((board: any) => board.id === toolhead.toolboard);
 			test.skipIf(!toolhead.toolboard).concurrent('has valid toolboard default', () => {
 				expect(defaultToolboard).not.toBeNull();
 			});

@@ -6,12 +6,12 @@ import {
 	getFilesToWrite,
 	compareSettings,
 	deserializePrinterConfiguration,
-} from '@/server/routers/printer';
+} from '@/server/services/configuration';
 import { describe, expect, test } from 'vitest';
 import { extractToolheadFromPrinterConfiguration, serializePartialToolheadConfiguration } from '@/utils/serialization';
 import path from 'path';
 import { replaceLinesStartingWith, stripCommentLines, stripIncludes } from '@/server/helpers/metadata';
-import { compileFirmware } from '@/server/routers/mcu';
+import { compileFirmware } from '@/server/services/mcu';
 import { ToolheadHelper } from '@/helpers/toolhead';
 import { getBoardChipId } from '@/helpers/board';
 import { constructKlipperConfigUtils } from '@/server/helpers/klipper-config';
@@ -57,7 +57,7 @@ const serializedConfigFromDefaults = (printer: PrinterDefinition): SerializedPri
 const loadConfig = async (path: string) => {
 	const config = await loadSerializedConfig(path);
 	const files = await getFilesToWrite(config);
-	const res: string = files.find((f) => f.fileName === 'RatOS.cfg')?.content ?? '';
+	const res: string = files.find((f: any) => f.fileName === 'RatOS.cfg')?.content ?? '';
 	const splitRes = res.split('\n');
 	const annotatedLines = splitRes.map((l: string, i: number) => `Line-${i + 1}`.padEnd(10, '-') + `|${l}`);
 	return {
@@ -123,16 +123,16 @@ describe('server', async () => {
 		test.concurrent('can deserialize toolheads from printer configuration files', async () => {
 			const parsedPrintersWithDeserializedToolheads = await getPrinters(true);
 			expect(parsedPrintersWithDeserializedToolheads.length).toEqual(parsedPrinters.length);
-			parsedPrinters.forEach((p) => {
+			parsedPrinters.forEach((p: PrinterDefinition) => {
 				expect(p.defaults.toolheads.length).toBeGreaterThan(0);
-				p.defaults.toolheads.forEach((t) => {
+				p.defaults.toolheads.forEach((t: any) => {
 					expect(t).not.toBeNull();
 				});
 			});
 		});
 		test.concurrent('can deserialize toolheads from a partial printer config', async () => {
 			await Promise.all(
-				parsedPrinters.map(async (p) => {
+				parsedPrinters.map(async (p: PrinterDefinition) => {
 					const config = await deserializePartialPrinterConfiguration({
 						printer: p.id,
 						rails: p.defaults.rails,
@@ -157,7 +157,7 @@ describe('server', async () => {
 							if (key === 'axis') {
 								return;
 							}
-							expect(th?.[key as keyof typeof toolhead]).toEqual(reserialized[key as keyof typeof reserialized]);
+							expect((th as any)?.[key]).toEqual((reserialized as any)[key]);
 						});
 					}
 				}),
@@ -166,7 +166,7 @@ describe('server', async () => {
 		test.concurrent('results in the same serialized config after reserializing a deserialized config', async () => {
 			await Promise.all(
 				parsedPrinters
-					.map((p) => {
+					.map((p: PrinterDefinition) => {
 						return serializedConfigFromDefaults(p);
 					})
 					.concat(
@@ -177,7 +177,7 @@ describe('server', async () => {
 							}),
 						),
 					)
-					.map(async (serialized) => {
+					.map(async (serialized: SerializedPrinterConfiguration) => {
 						const deserialized = await deserializePrinterConfiguration(serialized);
 						const reserialized = serializePrinterConfiguration(deserialized);
 						if (
@@ -280,14 +280,14 @@ describe('server', async () => {
 				expect(sensorlessBlocks.length).toBe(2);
 			});
 			test('correctly comments out generated sensorless defaults', async () => {
-				expect(files.find((f) => f.fileName === 'sensorless-homing-x.cfg')?.content).toContain(
+				expect(files.find((f: any) => f.fileName === 'sensorless-homing-x.cfg')?.content).toContain(
 					'#variable_sensorless_x_current: ',
 				);
-				expect(files.find((f) => f.fileName === 'sensorless-homing-y.cfg')?.content).toContain(
+				expect(files.find((f: any) => f.fileName === 'sensorless-homing-y.cfg')?.content).toContain(
 					'#variable_sensorless_y_current: ',
 				);
-				expect(files.find((f) => f.fileName === 'sensorless-homing-x.cfg')?.content).toContain('#driver_SGT: 0');
-				expect(files.find((f) => f.fileName === 'sensorless-homing-y.cfg')?.content).toContain('#driver_SGT: 0');
+				expect(files.find((f: any) => f.fileName === 'sensorless-homing-x.cfg')?.content).toContain('#driver_SGT: 0');
+				expect(files.find((f: any) => f.fileName === 'sensorless-homing-y.cfg')?.content).toContain('#driver_SGT: 0');
 			});
 		});
 		describe('can generate another idex config', async () => {
@@ -431,7 +431,7 @@ describe('server', async () => {
 		describe('can generate v-minion config', async () => {
 			const minionConfigPath = path.join(__dirname, 'fixtures', 'minion-config.json');
 			const { splitRes, annotatedLines, config, files } = await loadConfig(minionConfigPath);
-			const printerCfg = files.find((f) => f.fileName === 'printer.cfg')?.content ?? '';
+			const printerCfg = files.find((f: any) => f.fileName === 'printer.cfg')?.content ?? '';
 			const splitPrinterCfg = printerCfg.split('\n');
 			const annotatedPrinterCfgLines = splitPrinterCfg.map(
 				(l: string, i: number) => `Line-${i + 1}`.padEnd(10, '-') + `|${l}`,
@@ -562,12 +562,29 @@ describe('server', async () => {
 			test('produces valid config', async () => {
 				expectValidConfig(config, splitRes, annotatedLines);
 				// Expect gear_ratio to be set for z1, z2, z3, z4
-				expect(config.rails.find((r) => r.axis === PrinterAxis.z)?.gearRatio).toEqual('80:16');
-				expect(config.rails.find((r) => r.axis === PrinterAxis.z1)?.gearRatio).toEqual('80:16');
-				expect(config.rails.find((r) => r.axis === PrinterAxis.z2)?.gearRatio).toEqual('80:16');
-				expect(config.rails.find((r) => r.axis === PrinterAxis.z3)?.gearRatio).toEqual('80:16');
+				expect(config.rails.find((r: any) => r.axis === PrinterAxis.z)?.gearRatio).toEqual('80:16');
+				expect(config.rails.find((r: any) => r.axis === PrinterAxis.z1)?.gearRatio).toEqual('80:16');
+				expect(config.rails.find((r: any) => r.axis === PrinterAxis.z2)?.gearRatio).toEqual('80:16');
+				expect(config.rails.find((r: any) => r.axis === PrinterAxis.z3)?.gearRatio).toEqual('80:16');
 				// Expect gear_ratio to be present in splitRes
 				expect(splitRes.filter((l) => l.includes('gear_ratio:')).length).toBe(5);
+			});
+		});
+		describe('can generate v-minion sensorless config', async () => {
+			test('produces valid config', async () => {
+				const { files } = await loadConfig(path.join(__dirname, 'fixtures', 'v-minion-sensorless.json'));
+				expect(files.find((f: any) => f.fileName === 'sensorless-homing-x.cfg')?.content).toContain(
+					sensorlessXTemplate(
+						{
+							printer: 'v-minion',
+							axis: 'x',
+							stepper: 'stepper_x',
+							endstop_pin: 'tmc2209_stepper_x:virtual_endstop',
+						} as any,
+						{} as any,
+						false,
+					),
+				);
 			});
 		});
 	});
@@ -598,7 +615,7 @@ describe('server', async () => {
 						}
 						const k = key as keyof typeof toolhead;
 						const k2 = key as keyof typeof reserialized;
-						expect(th?.[k]).toEqual(reserialized[k2]);
+						expect((th as any)?.[k]).toEqual((reserialized as any)[k2]);
 					});
 				}
 			});
@@ -760,7 +777,7 @@ describe('server', async () => {
 						}
 						const k = key as keyof typeof toolhead;
 						const k2 = key as keyof typeof reserialized;
-						expect(th?.[k]).toEqual(reserialized[k2]);
+						expect((th as any)?.[k]).toEqual((reserialized as any)[k2]);
 					});
 				}
 			});

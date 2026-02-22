@@ -3,7 +3,48 @@ import { Steppers } from '@/data/steppers';
 import { HardwareLoader } from './hardware-loader';
 import { getLogger } from '@/server/helpers/logger';
 
-export const KNOWN_HARDWARE: HardwareFingerprint[] = [];
+class HardwareRegistry {
+    private byType: Map<string, HardwareFingerprint[]> = new Map();
+    private all: HardwareFingerprint[] = [];
+
+    public add(fp: HardwareFingerprint) {
+        this.all.push(fp);
+        if (!this.byType.has(fp.type)) {
+            this.byType.set(fp.type, []);
+        }
+        this.byType.get(fp.type)!.push(fp);
+    }
+
+    public getAll(): HardwareFingerprint[] {
+        return this.all;
+    }
+
+    public getByType(type: HardwareFingerprint['type']): HardwareFingerprint[] {
+        return this.byType.get(type) || [];
+    }
+
+    public findCandidates(features: Record<string, string | number | boolean>): HardwareFingerprint[] {
+        // Optimization: Filter by type if possible based on features
+        // For example, if features has 'nozzle_diameter', it's likely a hotend.
+        // If it has 'rotation_distance', it's a stepper/extruder.
+        
+        if (features['nozzle_diameter'] !== undefined || features['filament_diameter'] !== undefined) {
+            return this.getByType('hotend');
+        }
+        if (features['x_offset'] !== undefined || features['y_offset'] !== undefined || features['z_offset'] !== undefined) {
+            return this.getByType('probe');
+        }
+        if (features['rotation_distance'] !== undefined || features['microsteps'] !== undefined) {
+            // Could be stepper or extruder (which is a stepper in Klipper terms for motion)
+            return this.getByType('stepper');
+        }
+        
+        return this.all;
+    }
+}
+
+export const HARDWARE_REGISTRY = new HardwareRegistry();
+export const KNOWN_HARDWARE: HardwareFingerprint[] = HARDWARE_REGISTRY.getAll(); // Backward compatibility
 
 let isInitialized = false;
 
@@ -15,8 +56,8 @@ export const initializeHardwareDatabase = async () => {
         const hotends = await loader.loadHotends();
         const probes = await loader.loadProbes();
         
-        KNOWN_HARDWARE.push(...hotends);
-        KNOWN_HARDWARE.push(...probes);
+        hotends.forEach(h => HARDWARE_REGISTRY.add(h));
+        probes.forEach(p => HARDWARE_REGISTRY.add(p));
         
         getLogger().info(`Initialized Hardware DB with ${hotends.length} hotends and ${probes.length} probes.`);
         isInitialized = true;
@@ -52,7 +93,7 @@ Steppers.forEach(stepper => {
             // Add stepper specific features
             if (stepper.fullStepsPerRotation) features['full_steps_per_rotation'] = stepper.fullStepsPerRotation;
             
-            KNOWN_HARDWARE.push({
+            HARDWARE_REGISTRY.add({
                 id: stepper.id,
                 type: 'stepper',
                 features

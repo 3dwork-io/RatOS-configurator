@@ -6,12 +6,26 @@ import { LoadablePrinterToolheadsState } from '@/recoil/toolhead';
 import { ToolheadConfiguration } from '@/zods/toolhead';
 import { Spinner } from '@/components/common/spinner';
 import { VerticalSteps } from '@/components/common/vertical-steps';
-import { HardwareSelection } from '@/components/setup-steps/hardware-selection';
-import { MCUPreparation } from '@/components/setup-steps/mcu-preparation';
-import { PrinterSelection } from '@/components/setup-steps/printer-selection';
-import { WifiSetup } from '@/components/setup-steps/wifi-setup';
-import { WizardComplete } from '@/components/setup-steps/wizard-complete';
+import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
+
+// Dynamic imports for wizard steps to improve initial load performance
+const HardwareSelection = dynamic(() => import('@/components/setup-steps/hardware-selection').then(mod => mod.HardwareSelection), {
+	loading: () => <Spinner />,
+});
+const MCUPreparation = dynamic(() => import('@/components/setup-steps/mcu-preparation').then(mod => mod.MCUPreparation), {
+	loading: () => <Spinner />,
+});
+const PrinterSelection = dynamic(() => import('@/components/setup-steps/printer-selection').then(mod => mod.PrinterSelection), {
+	loading: () => <Spinner />,
+});
+const WifiSetup = dynamic(() => import('@/components/setup-steps/wifi-setup').then(mod => mod.WifiSetup), {
+	loading: () => <Spinner />,
+});
+const WizardComplete = dynamic(() => import('@/components/setup-steps/wizard-complete').then(mod => mod.WizardComplete), {
+	loading: () => <Spinner />,
+});
+
 import { useLocalPathname } from '@/app/_hooks/navigation';
 import { Card } from '@/components/common/card';
 import { useMachine } from '@xstate/react';

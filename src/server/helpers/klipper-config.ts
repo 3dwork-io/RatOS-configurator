@@ -831,16 +831,16 @@ export const constructKlipperConfigHelpers = async (
 			});
 			return result.join('\n');
 		},
-		renderHotend() {
-			let result: string[] = utils.getToolheads().map((th) => {
+		async renderHotend() {
+			let result: string[] = await Promise.all(utils.getToolheads().map((th) => {
 				return th.renderHotend(config.controlboard);
-			});
+			}));
 			return result.join('\n');
 		},
-		renderExtruder() {
-			let result: string[] = utils.getToolheads().map((th) => {
+		async renderExtruder() {
+			let result: string[] = await Promise.all(utils.getToolheads().map((th) => {
 				return th.renderExtruder();
-			});
+			}));
 			return result.join('\n');
 		},
 		renderInputShaper(printerSize: z.output<typeof PrinterSizeDefinition>) {

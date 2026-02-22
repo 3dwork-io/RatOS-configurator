@@ -310,9 +310,9 @@ export class ToolheadGenerator<IsToolboard extends boolean> extends ToolheadHelp
 		}
 		return result.join('\n');
 	}
-	public renderHotend(controlboard: Board) {
+	public async renderHotend(controlboard: Board) {
 		let result: string[] = [];
-		let hotend = readInclude(`hotends/${this.getHotend().id}.cfg`);
+		let hotend = await readInclude(`hotends/${this.getHotend().id}.cfg`);
 		hotend = stripCommentLines(hotend);
 		hotend = stripIncludes(hotend);
 		hotend = replaceLinesStartingWith(hotend, '[extruder]', `[${this.getExtruderAxis()}]`);
@@ -357,7 +357,7 @@ export class ToolheadGenerator<IsToolboard extends boolean> extends ToolheadHelp
 		result.push(hotend.trim());
 		return result.join('\n');
 	}
-	public renderExtruder() {
+	public async renderExtruder() {
 		let result: string[] = [];
 		// Get rid of the stepper/driver includes in the extruder config and paste it inline (backwards compatibility with 2.0).
 		result.push(
@@ -366,7 +366,7 @@ export class ToolheadGenerator<IsToolboard extends boolean> extends ToolheadHelp
 			}.cfg)`,
 		);
 		let extruder = stripCommentLines(
-			stripIncludes(stripDriverSections(readInclude(`extruders/${this.getExtruder().id}.cfg`))),
+			stripIncludes(stripDriverSections(await readInclude(`extruders/${this.getExtruder().id}.cfg`))),
 		);
 		extruder = replaceLinesStartingWith(extruder, '[extruder]', `[${this.getExtruderAxis()}]`);
 		result.push(extruder.trim());

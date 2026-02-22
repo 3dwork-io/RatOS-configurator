@@ -376,13 +376,13 @@ export const getFilesToWrite = async (
 	const { template, initialPrinterCfg } = await import(
 		`../../templates/${config.printer.template.replace('-printer.template.cfg', '.ts')}`
 	);
-	const renderedTemplate = template(config, helper).trim();
+	const renderedTemplate = (await template(config, helper)).trim();
 	const renderedPrinterCfg = await portModifications(
 		path.join(environment.KLIPPER_CONFIG_PATH, 'printer.cfg'),
 		initialPrinterCfg(config, helper).trim(),
 	);
 	const extras: FilesToWrite = extrasGenerator.getFilesToWrite();
-	return [
+	const allFiles = [
 		{ fileName: 'RatOS.cfg', content: renderedTemplate, overwrite: true, order: 0 } as Unpacked<FilesToWrite>,
 		{
 			fileName: 'printer.cfg',
@@ -390,28 +390,35 @@ export const getFilesToWrite = async (
 			content: renderedPrinterCfg,
 			overwrite: !(await isPrinterCfgInitialized()),
 		} as Unpacked<FilesToWrite>,
-	]
-		.concat(extras)
-		.map((f) => {
+	].concat(extras);
+
+	return Promise.all(
+		allFiles.map(async (f) => {
 			const fileWithExists: Unpacked<FilesToWrite> = { ...f, exists: false, diskContent: null };
 			if (overwriteFiles?.includes(fileWithExists.fileName) || overwriteFiles?.includes('*')) {
 				fileWithExists.overwrite = true;
 			}
-			fileWithExists.exists = existsSync(path.join(environment.KLIPPER_CONFIG_PATH, fileWithExists.fileName));
+			const filePath = path.join(environment.KLIPPER_CONFIG_PATH, fileWithExists.fileName);
+			try {
+				await access(filePath, constants.F_OK);
+				fileWithExists.exists = true;
+			} catch {
+				fileWithExists.exists = false;
+			}
+
 			if (fileWithExists.exists) {
-				fileWithExists.diskContent = readFileSync(
-					path.join(environment.KLIPPER_CONFIG_PATH, fileWithExists.fileName),
-					'utf-8',
-				);
-				if (existsSync(path.join(environment.RATOS_DATA_DIR, `last-${fileWithExists.fileName}`))) {
-					fileWithExists.lastSavedContent = readFileSync(
-						path.join(environment.RATOS_DATA_DIR, `last-${fileWithExists.fileName}`),
-						'utf-8',
-					);
+				fileWithExists.diskContent = await readFile(filePath, 'utf-8');
+				const lastSavedPath = path.join(environment.RATOS_DATA_DIR, `last-${fileWithExists.fileName}`);
+				try {
+					await access(lastSavedPath, constants.F_OK);
+					fileWithExists.lastSavedContent = await readFile(lastSavedPath, 'utf-8');
+				} catch {
+					// ignore
 				}
 			}
 			return fileWithExists;
-		});
+		}),
+	);
 };
 
 const BACKUPS_TO_KEEP = 5;

@@ -155,16 +155,18 @@ export const extractMcuFromFirmwareConfig = cacheAsyncMetadataFn(
 	MetadataCache,
 );
 
-export const getExtruderRotationDistance = cacheMetadataFn(
-	(extruderId: z.infer<(typeof Extruder)['shape']['id']>) => {
+export const getExtruderRotationDistance = cacheAsyncMetadataFn(
+	async (extruderId: z.infer<(typeof Extruder)['shape']['id']>) => {
 		const environment = serverSchema.parse(process.env);
 		const extruderCfgPath = path.join(environment.RATOS_CONFIGURATION_PATH, 'extruders', extruderId + '.cfg');
 		
-		if (!existsSync(extruderCfgPath)) {
+		try {
+			await fsPromises.access(extruderCfgPath, fsPromises.constants.F_OK);
+		} catch (e) {
 			throw new Error('Failed to parse config file: ' + extruderCfgPath);
 		}
 		
-		const content = readFileSync(extruderCfgPath, 'utf-8');
+		const content = await fsPromises.readFile(extruderCfgPath, 'utf-8');
 		const parser = new KlipperParser(content);
 		const ast = parser.parse();
 		
@@ -179,13 +181,15 @@ export const getExtruderRotationDistance = cacheMetadataFn(
 	MetadataCache,
 );
 
-export const readInclude = (fileName: string) => {
+export const readInclude = async (fileName: string) => {
 	const environment = serverSchema.parse(process.env);
 	const fullPath = path.join(environment.RATOS_CONFIGURATION_PATH, fileName);
-	if (!existsSync(fullPath)) {
+	try {
+		await fsPromises.access(fullPath, fsPromises.constants.F_OK);
+	} catch (e) {
 		throw new Error("Included file doesn't exist: " + fileName);
 	}
-	return readFileSync(fullPath, 'utf-8');
+	return fsPromises.readFile(fullPath, 'utf-8');
 };
 export const stripIncludes = (content: string) => {
 	return stripLinesStartingWith(content, '[include');
