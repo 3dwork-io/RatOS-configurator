@@ -1,6 +1,6 @@
 import NodeCache from 'node-cache';
 import { BoardWithDetectionStatus } from '@/zods/boards';
-import { CFGDirectories } from '@/server/routers/printer';
+import { CFGDirectories } from '@/server/services/configuration';
 import { Extruder } from '@/zods/hardware';
 import { ZodType, z } from 'zod';
 
@@ -48,7 +48,7 @@ export const cacheAsyncDirectoryFn = <
 type MetadataCacheValue = {
 	[key: `parsePinAlias-${string}`]: { [key: string]: string | undefined };
 	[key: `extractMcuFromFirmwareConfig-${string}`]: string;
-	[key: `getExtruderRotationDistance-${string}`]: z.infer<(typeof Extruder)['shape']['id']>;
+	[key: `getExtruderRotationDistance-${string}`]: number;
 };
 type MetadataCacheKey = keyof MetadataCacheValue;
 type MetadataCache = Omit<NodeCache, 'get' | 'set'> & {

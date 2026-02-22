@@ -2,7 +2,7 @@ import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'reac
 import { SerializedPrinterConfiguration } from '@/zods/printer-configuration';
 import { trpc } from '@/utils/trpc';
 import { useQuery } from '@tanstack/react-query';
-import type { FilesToWriteWithState, FileState } from '@/server/routers/printer';
+import type { FilesToWriteWithState, FileState } from '@/server/services/configuration';
 import { DiffModal } from '@/components/setup-steps/diff-modal';
 import { twJoin } from 'tailwind-merge';
 import { Menu, Transition } from '@headlessui/react';

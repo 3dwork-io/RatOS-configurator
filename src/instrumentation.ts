@@ -2,7 +2,7 @@ export const register = async () => {
 	if (process.env.NEXT_RUNTIME === 'nodejs') {
 		const { getLogger } = await import('./server/helpers/logger');
 		const { existsSync, mkdirSync } = await import('fs');
-		const { regenerateKlipperConfiguration } = await import('./server/routers/printer');
+		const { regenerateKlipperConfiguration } = await import('./server/services/configuration');
 		const { serverSchema } = await import('./env/schema.mjs');
 		const { symlinkKlippyExtensions } = await import('./server/routers/klippy-extensions');
 		const { symlinkMoonrakerExtensions } = await import('./server/routers/moonraker-extensions');

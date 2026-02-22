@@ -38,16 +38,16 @@ Steppers.forEach(stepper => {
             // However, specific driver settings (driver_TBL, etc) are strong indicators.
             
             if ('sense_resistor' in preset) features['sense_resistor'] = preset.sense_resistor;
-            if ('driver_TBL' in preset) features['driver_TBL'] = preset.driver_TBL;
-            if ('driver_TOFF' in preset) features['driver_TOFF'] = preset.driver_TOFF;
-            if ('driver_HEND' in preset) features['driver_HEND'] = preset.driver_HEND;
-            if ('driver_HSTRT' in preset) features['driver_HSTRT'] = preset.driver_HSTRT;
-            if ('driver_IHOLDDELAY' in preset) features['driver_IHOLDDELAY'] = preset.driver_IHOLDDELAY;
-            if ('driver_TPOWERDOWN' in preset) features['driver_TPOWERDOWN'] = preset.driver_TPOWERDOWN;
-            if ('driver_PWM_FREQ' in preset) features['driver_PWM_FREQ'] = preset.driver_PWM_FREQ;
-            if ('driver_PWM_GRAD' in preset) features['driver_PWM_GRAD'] = preset.driver_PWM_GRAD;
-            if ('driver_PWM_AMPL' in preset) features['driver_PWM_AMPL'] = preset.driver_PWM_AMPL;
-            if ('driver_PWM_AUTOSCALE' in preset) features['driver_PWM_AUTOSCALE'] = preset.driver_PWM_AUTOSCALE;
+            if (preset.driver_TBL !== undefined) features['driver_TBL'] = preset.driver_TBL;
+            if (preset.driver_TOFF !== undefined) features['driver_TOFF'] = preset.driver_TOFF;
+            if (preset.driver_HEND !== undefined) features['driver_HEND'] = preset.driver_HEND;
+            if (preset.driver_HSTRT !== undefined) features['driver_HSTRT'] = preset.driver_HSTRT;
+            if ('driver_IHOLDDELAY' in preset && preset.driver_IHOLDDELAY !== undefined) features['driver_IHOLDDELAY'] = preset.driver_IHOLDDELAY;
+            if ('driver_TPOWERDOWN' in preset && preset.driver_TPOWERDOWN !== undefined) features['driver_TPOWERDOWN'] = preset.driver_TPOWERDOWN;
+            if ('driver_PWM_FREQ' in preset && preset.driver_PWM_FREQ !== undefined) features['driver_PWM_FREQ'] = preset.driver_PWM_FREQ;
+            if ('driver_PWM_GRAD' in preset && preset.driver_PWM_GRAD !== undefined) features['driver_PWM_GRAD'] = preset.driver_PWM_GRAD;
+            if ('driver_PWM_AMPL' in preset && preset.driver_PWM_AMPL !== undefined) features['driver_PWM_AMPL'] = preset.driver_PWM_AMPL;
+            if ('driver_PWM_AUTOSCALE' in preset && preset.driver_PWM_AUTOSCALE !== undefined) features['driver_PWM_AUTOSCALE'] = preset.driver_PWM_AUTOSCALE;
             
             // Add stepper specific features
             if (stepper.fullStepsPerRotation) features['full_steps_per_rotation'] = stepper.fullStepsPerRotation;

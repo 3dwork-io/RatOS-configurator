@@ -69,7 +69,7 @@ describe('configuration', async () => {
 				.split('\n')
 				.map(
 					(l: string, i: number) =>
-						`${files[f].split('/').pop()}:${i + 1}`.padEnd(15, ' ') + `| ${l.replace(/\t/g, '')}`,
+						`${files[f].split('/').pop()}:${i + 1}`.padEnd(15, ' ') + `| ${l.replace(/\t/g, ' ')}`,
 				);
 			noAmpersands += generatedLines.filter((l: string) => l.includes('&&')).join('\n');
 			noElseIfs += generatedLines.filter((l: string) => l.includes('else if')).join('\n');

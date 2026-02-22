@@ -12,21 +12,48 @@ import {
 
 export class KlipperParser {
 	private content: string;
-	private lines: string[];
 	private currentLineIdx: number = 0;
+	private cursor: number = 0;
 
 	constructor(content: string) {
 		this.content = content;
-		this.lines = content.split(/\r?\n/);
+	}
+
+	private getNextLine(): string | null {
+		if (this.cursor >= this.content.length && this.cursor > 0) return null; // End of content, allow empty string if content is empty? No, cursor > 0 check handles non-empty content end.
+		// Edge case: empty content string -> cursor 0, length 0. Should return one empty line?
+		// split('') -> [''] (length 1).
+		if (this.content.length === 0 && this.cursor === 0) {
+			this.cursor = 1;
+			return '';
+		}
+		if (this.cursor >= this.content.length) return null;
+
+		let end = this.content.indexOf('\n', this.cursor);
+		if (end === -1) {
+			const line = this.content.substring(this.cursor);
+			this.cursor = this.content.length + 1; // Ensure we don't return again
+			return line.endsWith('\r') ? line.slice(0, -1) : line;
+		}
+		
+		let lineEnd = end;
+		if (end > this.cursor && this.content[end - 1] === '\r') {
+			lineEnd = end - 1;
+		}
+
+		const line = this.content.substring(this.cursor, lineEnd);
+		this.cursor = end + 1;
+		return line;
 	}
 
 	public parse(): KlipperNode[] {
 		this.currentLineIdx = 0;
+		this.cursor = 0;
 		const nodes: KlipperNode[] = [];
 		let currentSection: KlipperSection | null = null;
-
-		while (this.currentLineIdx < this.lines.length) {
-			const line = this.lines[this.currentLineIdx];
+		
+		let line: string | null;
+		while ((line = this.getNextLine()) !== null) {
 			const trimmedLine = line.trim();
 			
 			const startPos: Position = {
@@ -99,9 +126,9 @@ export class KlipperParser {
 					
 					if (spaceIndex > -1) {
 						name = content.substring(0, spaceIndex);
-						args = content.substring(spaceIndex + 1);
+						args = content.substring(spaceIndex + 1).trim();
 					}
-
+					
 					currentSection = {
 						type: 'Section',
 						name,
@@ -115,47 +142,8 @@ export class KlipperParser {
 				this.currentLineIdx++;
 				continue;
 			}
-
-			// 4. Continuation (Indented line)
-			if (line.startsWith(' ') || line.startsWith('\t')) {
-				const contextChildren = currentSection ? currentSection.children : nodes;
-				// Find last property to append to
-				let lastProp: KlipperProperty | null = null;
-				// Iterate backwards skipping comments/empty lines to find the property
-				for (let i = contextChildren.length - 1; i >= 0; i--) {
-					const node = contextChildren[i];
-					if (node.type === 'Property') {
-						lastProp = node;
-						break;
-					}
-					if (node.type === 'Section') break; 
-				}
-
-				if (lastProp) {
-					// We append the raw line to value (stripping initial indentation? No, usually value includes indentation or we strip it)
-					// Klipper values usually strip the indentation when parsed, but for AST we might want to keep it or normalize.
-					// Let's keep it raw in `raw` and normalized in `value`.
-					lastProp.value += '\n' + trimmedLine;
-					lastProp.raw += '\n' + line;
-					lastProp.range.end.line = this.currentLineIdx;
-					this.currentLineIdx++;
-					continue;
-				}
-				
-				// Orphan indent
-				const orphanNode: KlipperComment = {
-					type: 'Comment',
-					content: "ORPHAN INDENT: " + trimmedLine,
-					range,
-					raw: line
-				};
-				if (currentSection) currentSection.children.push(orphanNode);
-				else nodes.push(orphanNode);
-				this.currentLineIdx++;
-				continue;
-			}
-
-			// 5. Property
+			
+			// 4. Property
 			const separatorIndex = line.indexOf(':');
 			const separatorIndexEq = line.indexOf('=');
 			
@@ -170,74 +158,70 @@ export class KlipperParser {
 			
 			if (actualSeparatorIndex !== -1) {
 				const key = line.substring(0, actualSeparatorIndex).trim();
-				let valuePart = line.substring(actualSeparatorIndex + 1);
+				const valuePart = line.substring(actualSeparatorIndex + 1);
 				
-				// Check for inline comment
-				// Heuristic: " #" or " ;" or "#" at start of value (if empty value?)
-				// But we trimmed key, so value starts after separator.
-				
-				// We need to be careful not to split inside quotes (if Klipper supports quotes? It doesn't really, strings are just strings).
-				// But Klipper does support inline comments.
-				
-				const commentRegex = /[\s]([#;].*)$/;
-				const match = valuePart.match(commentRegex);
-				
-				let inlineComment: string | null = null;
+				// Inline comment handling
 				let finalValue = valuePart;
+				let inlineComment: string | undefined = undefined;
 
-				if (match && match.index !== undefined) {
-					// match[0] is " # comment" (including space)
-					// match[1] is "# comment"
-					inlineComment = match[1].substring(1).trim();
-					finalValue = valuePart.substring(0, match.index);
+				// Find comment start
+				const commentMatch = valuePart.match(/[\s]([#;].*)$/);
+				if (commentMatch && commentMatch.index !== undefined) {
+					finalValue = valuePart.substring(0, commentMatch.index);
+					inlineComment = commentMatch[1].substring(1).trim();
 				}
 
 				const propNode: KlipperProperty = {
 					type: 'Property',
 					key,
 					value: finalValue.trim(),
-					inlineComment: inlineComment ? inlineComment.trim() : undefined,
+					inlineComment,
 					range,
 					raw: line,
 				};
 
 				if (currentSection) {
 					currentSection.children.push(propNode);
-					if (inlineComment) {
-						// Add comment node after property
-						const commentNode: KlipperComment = {
-							type: 'Comment',
-							content: inlineComment.substring(1).trim(), // remove #
-							range: { ...range, start: { ...range.start, column: actualSeparatorIndex + 1 + finalValue.length } }, // Approx pos
-							raw: inlineComment // This is not the full line, but the comment part. 
-                            // Actually `raw` should probably be the full line for reconstruction?
-                            // But here we split one line into two nodes.
-                            // If we reconstruct, we might double print.
-                            // Maybe `PropertyNode` should have `inlineComment` field after all?
-                            // It's cleaner for reconstruction.
-						};
-                        // For now, let's just NOT add a separate comment node to avoid duplication in `raw`.
-                        // We will store the value trimmed. The `raw` field of property has the full line.
-					}
 				} else {
-					nodes.push(propNode);
+					const orphanNode: KlipperComment = {
+						type: 'Comment',
+						content: "ORPHAN PROPERTY: " + trimmedLine,
+						range,
+						raw: line
+					};
+					nodes.push(orphanNode);
 				}
 				this.currentLineIdx++;
 				continue;
 			}
 
-			// 6. Unknown
+			// 5. Unknown / Continuation
+			// If it's indented and we have a previous property, it's a continuation.
+			if ((line.startsWith(' ') || line.startsWith('\t')) && currentSection && currentSection.children.length > 0) {
+				const lastChild = currentSection.children[currentSection.children.length - 1];
+				if (lastChild.type === 'Property') {
+					lastChild.value += '\n' + trimmedLine;
+					lastChild.raw += '\n' + line;
+					lastChild.range.end = endPos;
+					this.currentLineIdx++;
+					continue;
+				}
+			}
+
+			// Otherwise, it's unknown/comment
 			const unknownNode: KlipperComment = {
 				type: 'Comment',
-				content: "UNKNOWN: " + trimmedLine,
+				content: trimmedLine, // Treat as comment content
 				range,
 				raw: line
 			};
-			if (currentSection) currentSection.children.push(unknownNode);
-			else nodes.push(unknownNode);
+			if (currentSection) {
+				currentSection.children.push(unknownNode);
+			} else {
+				nodes.push(unknownNode);
+			}
 			this.currentLineIdx++;
 		}
-
 		return nodes;
 	}
 }

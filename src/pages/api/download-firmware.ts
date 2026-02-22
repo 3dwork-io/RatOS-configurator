@@ -3,7 +3,7 @@ import fs from 'fs';
 import { promisify } from 'util';
 import path from 'path';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getBoards } from '@/server/routers/mcu';
+import { getBoards } from '@/server/services/mcu';
 import { fileTypeFromFile } from 'file-type';
 import { serverSchema } from '@/env/schema.mjs';
 

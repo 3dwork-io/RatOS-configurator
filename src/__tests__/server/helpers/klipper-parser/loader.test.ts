@@ -26,7 +26,7 @@ describe('KlipperLoader', () => {
 		vi.resetAllMocks();
 	});
 
-	it('should load a simple file', () => {
+	it('should load a simple file', async () => {
 		const filePath = '/config/printer.cfg';
 		const content = `
 [printer]
@@ -35,14 +35,14 @@ kinematics: corexy
 		vi.spyOn(fs, 'existsSync').mockReturnValue(true);
 		vi.spyOn(fs, 'readFileSync').mockReturnValue(content);
 
-		const file = loader.load(filePath);
+		const file = await loader.load(filePath);
 		
 		expect(file.path).toBe(filePath);
 		expect(file.content).toBe(content);
 		expect(file.nodes).toHaveLength(2); // Empty line + Section
 	});
 
-	it('should resolve includes', () => {
+	it('should resolve includes', async () => {
 		const mainPath = '/config/printer.cfg';
 		const mainContent = `
 [include mainsail.cfg]
@@ -61,9 +61,9 @@ path: ~/printer_data/gcodes
 			return '';
 		});
 
-		const file = loader.load(mainPath);
+		const file = await loader.load(mainPath);
 		
-		const includeNode = file.nodes.find(n => n.type === 'Include') as KlipperInclude;
+		const includeNode = file.nodes.find((n: any) => n.type === 'Include') as KlipperInclude;
 		expect(includeNode).toBeDefined();
 		expect(includeNode.path).toBe('mainsail.cfg');
 		expect(includeNode.resolvedFile).toBeDefined();
@@ -71,7 +71,7 @@ path: ~/printer_data/gcodes
 		expect(includeNode.resolvedFile?.content).toBe(includeContent);
 	});
 
-	it('should handle circular includes gracefully', () => {
+	it('should handle circular includes gracefully', async () => {
 		const fileA = '/config/a.cfg';
 		const contentA = `[include b.cfg]`;
 		const fileB = '/config/b.cfg';
@@ -84,7 +84,7 @@ path: ~/printer_data/gcodes
 			return '';
 		});
 
-		const file = loader.load(fileA);
+		const file = await loader.load(fileA);
 		
 		const includeNodeA = file.nodes[0] as KlipperInclude;
 		expect(includeNodeA.resolvedFile).toBeDefined();

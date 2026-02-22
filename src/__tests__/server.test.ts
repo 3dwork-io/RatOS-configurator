@@ -573,8 +573,9 @@ describe('server', async () => {
 	});
 	describe('printer defaults', async () => {
 		const printers = await getPrinters();
-		describe.each(printers)('can generate a default config for $manufacturer $name', async (printer) => {
-			const serialized = serializedConfigFromDefaults(printer);
+		describe.each(printers)('can generate a default config for $manufacturer $name', async (...args: any[]) => {
+		const printer = args[0];
+		const serialized = serializedConfigFromDefaults(printer);
 			const config = await deserializePrinterConfiguration(serialized);
 			test('defaults resolve to valid config', async () => {
 				expect(config).not.toBeNull();
@@ -595,11 +596,14 @@ describe('server', async () => {
 						if (key === 'axis') {
 							return;
 						}
-						expect(th?.[key as keyof typeof toolhead]).toEqual(reserialized[key as keyof typeof reserialized]);
+						const k = key as keyof typeof toolhead;
+						const k2 = key as keyof typeof reserialized;
+						expect(th?.[k]).toEqual(reserialized[k2]);
 					});
 				}
 			});
-			describe.each(await getFilesToWrite(config))('defaults generate valid content for $fileName', async (res) => {
+			describe.each(await getFilesToWrite(config))('defaults generate valid content for $fileName', async (...args: any[]) => {
+				const res = args[0];
 				const splitRes = res.content.split('\n');
 				const annotatedLines = splitRes.map((l: string, i: number) => `Line-${i + 1}`.padEnd(10, '-') + `|${l}`);
 				test('not empty', () => {
@@ -632,18 +636,18 @@ describe('server', async () => {
 					}
 				});
 				test('contain valid includes', async () => {
-					const includes = splitRes.filter((l) => l.includes('[include '));
-					const invalidIncludes = includes.filter((l) => !l.includes('[include RatOS'));
+					const includes = splitRes.filter((l: string) => l.includes('[include '));
+					const invalidIncludes = includes.filter((l: string) => !l.includes('[include RatOS'));
 					const env = serverSchema.parse(process.env);
 					includes
-						.filter((l) => l.includes('[include RatOS/'))
-						.forEach((l) => {
+						.filter((l: string) => l.includes('[include RatOS/'))
+						.forEach((l: string) => {
 							try {
 								expect(
 									existsSync(path.join(env.RATOS_CONFIGURATION_PATH, l.split('[include RatOS/')[1].replace(']', ''))),
 								).toBeTruthy();
 							} catch (e) {
-								const index = splitRes.findIndex((line) => line === l);
+								const index = splitRes.findIndex((line: string) => line === l);
 								throw new Error(
 									`Found non existing include ${l}:\n${annotatedLines
 										.slice(Math.max(index - 4, 0), Math.min(index + 5, splitRes.length))
@@ -652,10 +656,10 @@ describe('server', async () => {
 							}
 						});
 				});
-				test.runIf(res.fileName === 'printer.cfg').concurrent('contains position_min/max/endstop for x/y', async () => {
+				test.concurrent('contains position_min/max/endstop for x/y', async () => {
 					const xSections: number[] = [];
 					const ySections: number[] = [];
-					splitRes.forEach((l, i) => {
+					splitRes.forEach((l: string, i: number) => {
 						l.startsWith('[stepper_x]') && xSections.push(i);
 						l.startsWith('[stepper_y]') && ySections.push(i);
 					});
@@ -665,11 +669,11 @@ describe('server', async () => {
 						let hasMax = false;
 						let hasEndstop = false;
 						sections.forEach((i) => {
-							const nextSection = splitRes.slice(i + 1).findIndex((l) => l.trim().startsWith('['));
-							hasMin = splitRes.slice(i, i + nextSection).find((l) => l.includes('position_min:')) != null || hasMin;
-							hasMax = splitRes.slice(i, i + nextSection).find((l) => l.includes('position_max:')) != null || hasMax;
+							const nextSection = splitRes.slice(i + 1).findIndex((l: string) => l.trim().startsWith('['));
+							hasMin = splitRes.slice(i, i + nextSection).find((l: string) => l.includes('position_min:')) != null || hasMin;
+							hasMax = splitRes.slice(i, i + nextSection).find((l: string) => l.includes('position_max:')) != null || hasMax;
 							hasEndstop =
-								splitRes.slice(i, i + nextSection).find((l) => l.includes('position_endstop:')) != null || hasEndstop;
+								splitRes.slice(i, i + nextSection).find((l: string) => l.includes('position_endstop:')) != null || hasEndstop;
 						});
 						try {
 							expect(hasMin, `[stepper_${sectionName}] is missing position_min`).toBeTruthy();
@@ -684,7 +688,7 @@ describe('server', async () => {
 				test.runIf(res.fileName === 'printer.cfg').concurrent('contains no RatOS managed parameters', async () => {
 					const offendingLines: { line: number; param: string }[] = [];
 					const offendingStrings = ['nozzle_diameter', 'variable_hotend_type', 'variable_has_cht_nozzle'];
-					splitRes.forEach((l, i) => {
+					splitRes.forEach((l: string, i: number) => {
 						offendingStrings.forEach((s) => {
 							if (l.startsWith(s)) {
 								offendingLines.push({ line: i, param: s });
@@ -703,7 +707,7 @@ describe('server', async () => {
 				});
 				test.concurrent('properly indents gcode blocks', async () => {
 					const gcodeBlocks: number[] = [];
-					splitRes.forEach((l, i) => l.includes('gcode:') && gcodeBlocks.push(i));
+					splitRes.forEach((l: string, i: number) => l.includes('gcode:') && gcodeBlocks.push(i));
 					for (const block of gcodeBlocks) {
 						try {
 							expect(
@@ -754,11 +758,14 @@ describe('server', async () => {
 						if (key === 'axis') {
 							return;
 						}
-						expect(th?.[key as keyof typeof toolhead]).toEqual(reserialized[key as keyof typeof reserialized]);
+						const k = key as keyof typeof toolhead;
+						const k2 = key as keyof typeof reserialized;
+						expect(th?.[k]).toEqual(reserialized[k2]);
 					});
 				}
 			});
-			describe.each(await getFilesToWrite(config))('fixture generates valid content for $fileName', async (res) => {
+			describe.each(await getFilesToWrite(config))('fixture generates valid content for $fileName', async (...args: any[]) => {
+				const res = args[0];
 				const splitRes = res.content.split('\n');
 				const annotatedLines = splitRes.map((l: string, i: number) => `Line-${i + 1}`.padEnd(10, '-') + `|${l}`);
 				test('not empty', () => {
@@ -791,18 +798,18 @@ describe('server', async () => {
 					}
 				});
 				test('contain valid includes', async () => {
-					const includes = splitRes.filter((l) => l.includes('[include '));
-					const invalidIncludes = includes.filter((l) => !l.includes('[include RatOS'));
+					const includes = splitRes.filter((l: string) => l.includes('[include '));
+					const invalidIncludes = includes.filter((l: string) => !l.includes('[include RatOS'));
 					const env = serverSchema.parse(process.env);
 					includes
-						.filter((l) => l.includes('[include RatOS/'))
-						.forEach((l) => {
+						.filter((l: string) => l.includes('[include RatOS/'))
+						.forEach((l: string) => {
 							try {
 								expect(
 									existsSync(path.join(env.RATOS_CONFIGURATION_PATH, l.split('[include RatOS/')[1].replace(']', ''))),
 								).toBeTruthy();
 							} catch (e) {
-								const index = splitRes.findIndex((line) => line === l);
+								const index = splitRes.findIndex((line: string) => line === l);
 								throw new Error(
 									`Found non existing include ${l}:\n${annotatedLines
 										.slice(Math.max(index - 4, 0), Math.min(index + 5, splitRes.length))
@@ -814,7 +821,7 @@ describe('server', async () => {
 				test.runIf(res.fileName === 'printer.cfg').concurrent('contains position_min/max/endstop for x/y', async () => {
 					const xSections: number[] = [];
 					const ySections: number[] = [];
-					splitRes.forEach((l, i) => {
+					splitRes.forEach((l: string, i: number) => {
 						l.startsWith('[stepper_x]') && xSections.push(i);
 						l.startsWith('[stepper_y]') && ySections.push(i);
 					});
@@ -824,11 +831,11 @@ describe('server', async () => {
 						let hasMax = false;
 						let hasEndstop = false;
 						sections.forEach((i) => {
-							const nextSection = splitRes.slice(i + 1).findIndex((l) => l.trim().startsWith('['));
-							hasMin = splitRes.slice(i, i + nextSection).find((l) => l.includes('position_min:')) != null || hasMin;
-							hasMax = splitRes.slice(i, i + nextSection).find((l) => l.includes('position_max:')) != null || hasMax;
+							const nextSection = splitRes.slice(i + 1).findIndex((l: string) => l.trim().startsWith('['));
+							hasMin = splitRes.slice(i, i + nextSection).find((l: string) => l.includes('position_min:')) != null || hasMin;
+							hasMax = splitRes.slice(i, i + nextSection).find((l: string) => l.includes('position_max:')) != null || hasMax;
 							hasEndstop =
-								splitRes.slice(i, i + nextSection).find((l) => l.includes('position_endstop:')) != null || hasEndstop;
+								splitRes.slice(i, i + nextSection).find((l: string) => l.includes('position_endstop:')) != null || hasEndstop;
 						});
 						try {
 							expect(hasMin, `[stepper_${sectionName}] is missing position_min`).toBeTruthy();
@@ -843,7 +850,7 @@ describe('server', async () => {
 				test.runIf(res.fileName === 'printer.cfg').concurrent('contains no RatOS managed parameters', async () => {
 					const offendingLines: { line: number; param: string }[] = [];
 					const offendingStrings = ['nozzle_diameter', 'variable_hotend_type', 'variable_has_cht_nozzle'];
-					splitRes.forEach((l, i) => {
+					splitRes.forEach((l: string, i: number) => {
 						offendingStrings.forEach((s) => {
 							if (l.startsWith(s)) {
 								offendingLines.push({ line: i, param: s });
@@ -862,7 +869,7 @@ describe('server', async () => {
 				});
 				test.concurrent('properly indents gcode blocks', async () => {
 					const gcodeBlocks: number[] = [];
-					splitRes.forEach((l, i) => l.includes('gcode:') && gcodeBlocks.push(i));
+					splitRes.forEach((l: string, i: number) => l.includes('gcode:') && gcodeBlocks.push(i));
 					for (const block of gcodeBlocks) {
 						try {
 							expect(
@@ -894,7 +901,7 @@ describe('server', async () => {
 			expect(
 				cbFirmware
 					.split('\n')
-					.filter((l) => l.includes(`CONFIG_USB_SERIAL_NUMBER="${getBoardChipId(config.controlboard)}"`)).length,
+					.filter((l: string) => l.includes(`CONFIG_USB_SERIAL_NUMBER="${getBoardChipId(config.controlboard)}"`)).length,
 			).toEqual(1);
 			for (const toolhead of config.toolheads) {
 				if (toolhead.toolboard == null) {
@@ -906,7 +913,7 @@ describe('server', async () => {
 				if (!thFirmware) {
 					throw new Error('Failed to compile controlboard firmware');
 				}
-				expect(thFirmware.split('\n').filter((l) => l.includes(`CONFIG_USB_SERIAL_NUMBER="${chipId}"`)).length).toEqual(
+				expect(thFirmware.split('\n').filter((l: string) => l.includes(`CONFIG_USB_SERIAL_NUMBER="${chipId}"`)).length).toEqual(
 					1,
 				);
 			}

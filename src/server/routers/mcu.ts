@@ -18,7 +18,7 @@ import { getBoardSerialPath } from '@/helpers/board';
 import { serverSchema } from '@/env/schema.mjs';
 import { getScriptRoot } from '@/server/helpers/file-operations';
 import { ToolheadHelper } from '@/helpers/toolhead';
-import { deserializeToolheadConfiguration } from '@/server/routers/printer';
+import { deserializeToolheadConfiguration } from '@/server/services/configuration';
 import { PrinterAxis } from '@/zods/motion';
 import { parseBoardPinConfig } from '@/server/helpers/metadata';
 import { getLastPrinterSettings } from '@/server/helpers/printer-settings';

@@ -1,4 +1,5 @@
 import fs, { existsSync, readFileSync } from 'fs';
+import * as fsPromises from 'fs/promises';
 import { glob } from 'glob';
 import path from 'path';
 import { TRPCError } from '@trpc/server';
@@ -26,8 +27,8 @@ export const detect = (board: Board, toolhead?: ToolheadHelper<boolean>) => {
 	return fs.existsSync(getBoardSerialPath(board, toolhead));
 };
 
-export const getBoards = async () => {
-	const cached = ServerCache.get('boards');
+export const getBoards = async (): Promise<BoardWithDetectionStatus[]> => {
+	const cached = ServerCache.get('boards') as BoardWithDetectionStatus[] | undefined;
 	if (cached != null && cached.length > 0) {
 		return cached.map((b) => {
 			b.detected = detect(b);
@@ -35,16 +36,28 @@ export const getBoards = async () => {
 		});
 	}
 	const defs = await glob(`${process.env.RATOS_CONFIGURATION_PATH}/boards/*/board-definition.json`);
-	const boards = defs
-		.map((f) =>
-			f.trim() === ''
-				? null
-				: {
-						...(JSON.parse(fs.readFileSync(f).toString()) as BoardWithDetectionStatus),
-						path: BoardPath.parse(f.replace('board-definition.json', '')),
-					},
-		)
-		.filter(Boolean)
+	
+	const boardsPromises = defs.map(async (f) => {
+		if (f.trim() === '') return null;
+		try {
+			const content = await fsPromises.readFile(f, 'utf-8');
+			return {
+				...(JSON.parse(content) as BoardWithDetectionStatus),
+				path: BoardPath.parse(f.replace('board-definition.json', '')),
+			};
+		} catch (e) {
+			// If a file fails to read or parse, we might want to log it and skip.
+			// Or throw error if it's critical. 
+			// For now, let's allow skipping if read fails, but throw if Zod parse fails later.
+			console.warn(`Failed to read board definition: ${f}`, e);
+			return null;
+		}
+	});
+
+	const rawBoards = await Promise.all(boardsPromises);
+
+	const boards = rawBoards
+		.filter((b): b is NonNullable<typeof b> => b !== null)
 		.map((b) => {
 			b.detected = detect(b);
 			try {

@@ -1,4 +1,5 @@
-import { getBoards } from '@/server/routers/mcu';
+import { getBoards } from '@/server/services/mcu';
+import { BoardWithDetectionStatus } from '@/zods/boards';
 import { createWriteStream, existsSync, unlinkSync } from 'fs';
 import { Readable } from 'stream';
 import path from 'path';
@@ -8,7 +9,7 @@ export const pullImagesFromDiagrams = async () => {
 	const parsedBoards = await getBoards();
 
 	await Promise.all(
-		parsedBoards.map(async (board) => {
+		parsedBoards.map(async (board: BoardWithDetectionStatus) => {
 			const diagramPath = path.join(board.path, 'wiring.drawio.svg');
 			const maybeOldImgPng = path.join(board.path, 'board.png');
 			const maybeOldImgWebp = path.join(board.path, 'board.png');

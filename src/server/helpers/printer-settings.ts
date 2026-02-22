@@ -1,6 +1,6 @@
 import { existsSync } from 'fs';
 import { serverSchema } from '@/env/schema.mjs';
-import { loadSerializedConfig, readSerializedConfig } from '@/server/routers/printer';
+import { loadSerializedConfig, readSerializedConfig } from '@/server/services/configuration';
 import path from 'path';
 import { PrinterConfiguration, SerializedPrinterConfiguration } from '@/zods/printer-configuration';
 import { writeFile } from 'fs/promises';

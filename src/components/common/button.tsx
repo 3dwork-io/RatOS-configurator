@@ -136,7 +136,7 @@ export const Button = forwardRef(function Button<T extends string>(
 	const buttonClasses = twMerge(buttonVariants({ variant: variant, disabled: disabled, size: size }), className);
 	if (href) {
 		return (
-			<Link<T>
+			<Link
 				href={href}
 				ref={ref}
 				className={buttonClasses}

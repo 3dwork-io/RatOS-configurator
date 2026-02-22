@@ -21,7 +21,7 @@ import {
 	computeOldLineNumber,
 	computeNewLineNumber,
 } from 'react-diff-view';
-import type { FileState } from '@/server/routers/printer';
+import type { FileState } from '@/server/services/configuration';
 import 'react-diff-view/style/index.css';
 import { XMarkIcon } from '@heroicons/react/20/solid';
 import { Button, ButtonProps } from '@/components/common/button';

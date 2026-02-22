@@ -1,4 +1,5 @@
 import { createReadStream, existsSync, readFileSync } from 'fs';
+import * as fsPromises from 'fs/promises';
 import path from 'path';
 import { createInterface } from 'readline';
 import { z, ZodType } from 'zod';
@@ -20,10 +21,15 @@ import { extractJsonFromComments, findSectionProperty, parsePinAliasFromAst } fr
 
 export const parseMetadata = async <T extends ZodType>(cfgFile: string, zod: T): Promise<z.infer<T> | null> => {
 	if (cfgFile.trim() === '') return null;
-	if (!existsSync(cfgFile)) return null;
+	
+	try {
+		await fsPromises.access(cfgFile);
+	} catch {
+		return null;
+	}
 
 	try {
-		const content = readFileSync(cfgFile, 'utf-8');
+		const content = await fsPromises.readFile(cfgFile, 'utf-8');
 		const parser = new KlipperParser(content);
 		const ast = parser.parse();
 		
@@ -64,11 +70,13 @@ const parsePinValue = (value: string) => {
 
 const parsePinAlias = cacheAsyncMetadataFn(
 	async (file: string) => {
-		if (!existsSync(file)) {
+		try {
+			await fsPromises.access(file);
+		} catch {
 			throw new Error('Failed to parse config file: ' + file);
 		}
 		
-		const content = readFileSync(file, 'utf-8');
+		const content = await fsPromises.readFile(file, 'utf-8');
 		const parser = new KlipperParser(content);
 		const ast = parser.parse();
 		

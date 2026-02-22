@@ -43,9 +43,7 @@ import { PartialToNullableRequired, strictWithDefaults } from '@/utils/object-ma
 
 function assert(condition: unknown, message?: string): asserts condition {
 	if (!condition) {
-		throw new AssertionError(message);
-	}
-});
+		throw new AssertionError({ message });
 	}
 }
 
